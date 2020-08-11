@@ -16,7 +16,7 @@ defmodule GeoPong.Application do
       GeoPong.GameInstanceRegistry.child_spec(),
 
       # Start the game instances supervisor
-      GeoPong.GameInstanceDynamicSupervisor
+      GeoPong.GameInstanceDynamicSupervisor,
 
       # Start the Endpoint (http/https)
       GeoPongWeb.Endpoint

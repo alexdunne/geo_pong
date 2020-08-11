@@ -13,16 +13,17 @@ defmodule GeoPongWeb.Router do
     plug :accepts, ["json"]
   end
 
-  scope "/", GeoPongWeb do
-    pipe_through :browser
+  # scope "/", GeoPongWeb do
+  #   pipe_through :browser
 
-    get "/", PageController, :index
-  end
-
-  # Other scopes may use custom stacks.
-  # scope "/api", GeoPongWeb do
-  #   pipe_through :api
+  #   get "/", PageController, :index
   # end
+
+  scope "/api", GeoPongWeb do
+    pipe_through :api
+
+    resources "/instance", GameInstanceController, only: [:index, :show]
+  end
 
   # Enables LiveDashboard only for development
   #

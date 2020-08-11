@@ -16,17 +16,17 @@ defmodule GeoPong.GameInstances.GameInstanceProcess do
     {:ok, game_instance}
   end
 
-  # Callbacks
-
-  @impl true
-  def handle_call(:fetch, _from, %GameInstance{} = state) do
-    {:reply, state, state}
-  end
-
   # Client API
 
   def fetch(pid) do
     pid
     |> GenServer.call(:fetch)
+  end
+
+  # Callbacks
+
+  @impl true
+  def handle_call(:fetch, _from, %GameInstance{} = state) do
+    {:reply, state, state}
   end
 end
