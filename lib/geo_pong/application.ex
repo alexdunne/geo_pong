@@ -11,10 +11,12 @@ defmodule GeoPong.Application do
       GeoPongWeb.Telemetry,
       # Start the PubSub system
       {Phoenix.PubSub, name: GeoPong.PubSub},
+
+      # Start the game instance registry
+      GeoPong.GameInstanceRegistry.child_spec(),
+
       # Start the Endpoint (http/https)
       GeoPongWeb.Endpoint
-      # Start a worker by calling: GeoPong.Worker.start_link(arg)
-      # {GeoPong.Worker, arg}
     ]
 
     # See https://hexdocs.pm/elixir/Supervisor.html
