@@ -1,0 +1,2 @@
+defmodule GeoPong.GameInstances.GameInstanceProcess do
+end
