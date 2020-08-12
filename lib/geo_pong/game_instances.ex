@@ -37,10 +37,21 @@ defmodule GeoPong.GameInstances do
 
     instance = GameInstance.new()
 
-    Logger.info("New game created [id: #{instance.id}, code: #{instance.code}]")
+    Logger.info("New game created [id: #{instance.id}]")
 
     GameInstanceDynamicSupervisor.add_game_instance_to_supervisor(instance)
 
     instance
+  end
+
+  def join(instance_id) do
+    Logger.info("Attempting to join game instance #{instance_id}")
+
+    instance_id
+    |> GameInstanceRegistry.lookup_game_instance()
+    |> case do
+      {:ok, pid} -> GameInstanceProcess.join(pid)
+      error -> error
+    end
   end
 end

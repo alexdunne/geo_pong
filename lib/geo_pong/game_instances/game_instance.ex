@@ -1,20 +1,37 @@
 defmodule GeoPong.GameInstances.GameInstance do
-  @enforce_keys [:id, :code]
-  @derive Jason.Encoder
-  defstruct [:id, :code]
+  alias GeoPong.GameInstances.{GameInstance}
 
-  def new() do
-    %GeoPong.GameInstances.GameInstance{
-      id: UUID.uuid4(),
-      code: generate_code()
+  @enforce_keys [:id, :secret]
+  @derive {Jason.Encoder, only: [:id]}
+  defstruct [:id, :secret, :players]
+
+  defguard is_game_full(players) when length(players) >= 2
+
+  def new do
+    id = generate_id()
+
+    %GameInstance{
+      id: id,
+      secret: UUID.uuid4(),
+      players: []
     }
   end
 
-  defp generate_code do
+  def get_player_one(%GameInstance{} = game_instance) do
+    hd(game_instance.players)
+  end
+
+  def get_player_two(%GameInstance{} = game_instance) do
+    List.last(game_instance.players)
+  end
+
+  defp generate_id do
     first = Faker.Superhero.prefix()
     second = Faker.Commerce.color()
     third = Faker.Food.ingredient()
 
-    String.downcase("#{first} #{second} #{third}")
+    "#{first}-#{second}-#{third}"
+    |> String.downcase()
+    |> String.replace(" ", "-")
   end
 end

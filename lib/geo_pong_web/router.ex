@@ -22,7 +22,9 @@ defmodule GeoPongWeb.Router do
   scope "/api", GeoPongWeb do
     pipe_through :api
 
-    resources "/instance", GameInstanceController, only: [:index, :create, :show]
+    resources "/instance", GameInstanceController, only: [:index, :create, :show] do
+      post "/join", GameInstanceController, :join
+    end
   end
 
   # Enables LiveDashboard only for development
