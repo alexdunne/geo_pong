@@ -11,6 +11,13 @@ defmodule GeoPongWeb.GameInstanceController do
     |> json(instances)
   end
 
+  def create(conn, _params) do
+    instance = GameInstances.create()
+
+    conn
+    |> json(instance)
+  end
+
   def show(conn, %{"id" => instance_id}) do
     instance = GameInstances.fetch(instance_id)
 

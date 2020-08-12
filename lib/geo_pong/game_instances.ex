@@ -1,4 +1,6 @@
 defmodule GeoPong.GameInstances do
+  require Logger
+
   alias GeoPong.{GameInstanceDynamicSupervisor, GameInstanceRegistry}
   alias GeoPong.GameInstances.{GameInstance, GameInstanceProcess}
 
@@ -28,5 +30,17 @@ defmodule GeoPong.GameInstances do
       {:ok, pid} -> GameInstanceProcess.fetch(pid)
       error -> error
     end
+  end
+
+  def create() do
+    Logger.info("Creating a new game instance")
+
+    instance = GameInstance.new()
+
+    Logger.info("New game created [id: #{instance.id}, code: #{instance.code}]")
+
+    GameInstanceDynamicSupervisor.add_game_instance_to_supervisor(instance)
+
+    instance
   end
 end
