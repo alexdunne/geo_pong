@@ -14,7 +14,7 @@ defmodule GeoPong.GameInstances.GameInstanceProcess do
 
   @impl true
   def init(%GameInstance{} = game_instance) do
-    schedule_broadcast_to_subscribers()
+    tick()
 
     {:ok, game_instance}
   end
@@ -67,17 +67,34 @@ defmodule GeoPong.GameInstances.GameInstanceProcess do
     |> GameInstance.all_players_ready?()
     |> case do
       true ->
-        send(self(), {:broadcast, "all_players_ready", %{}})
-        {:noreply, GameInstance.update_status(state, GameInstance.status_all_players_ready())}
+        {:noreply, GameInstance.start_countdown(state)}
 
       _ ->
         {:noreply, state}
     end
   end
 
-  def handle_info(:broadcast_to_subscribers, state) do
-    send(self(), {:broadcast, "game_state", %{}})
-    schedule_broadcast_to_subscribers()
+  def handle_info(:tick, %GameInstance{status: :countdown_in_progress} = state) do
+    state =
+      state
+      |> GameInstance.countdown_elapsed?()
+      |> case do
+        true ->
+          GameInstance.start_game(state)
+
+        _ ->
+          state
+      end
+
+    send(self(), {:broadcast, "game_state", state})
+    tick()
+
+    {:noreply, state}
+  end
+
+  def handle_info(:tick, state) do
+    send(self(), {:broadcast, "game_state", state})
+    tick()
 
     {:noreply, state}
   end
@@ -91,7 +108,7 @@ defmodule GeoPong.GameInstances.GameInstanceProcess do
 
   # Internal commands
 
-  defp schedule_broadcast_to_subscribers do
-    Process.send_after(self(), :broadcast_to_subscribers, 16)
+  defp tick do
+    Process.send_after(self(), :tick, 16)
   end
 end

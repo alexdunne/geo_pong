@@ -1,12 +1,13 @@
 defmodule GeoPong.GameInstances.Player do
-  @enforce_keys [:id, :name]
-  @derive {Jason.Encoder, only: [:name]}
-  defstruct [:id, :name]
+  @enforce_keys [:id, :name, :ready]
+  @derive {Jason.Encoder, only: [:name, :ready]}
+  defstruct [:id, :name, :ready]
 
   def new do
     %GeoPong.GameInstances.Player{
       id: UUID.uuid4(),
-      name: generate_name()
+      name: generate_name(),
+      ready: false
     }
   end
 
