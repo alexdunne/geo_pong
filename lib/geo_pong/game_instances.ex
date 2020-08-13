@@ -54,4 +54,15 @@ defmodule GeoPong.GameInstances do
       error -> error
     end
   end
+
+  def mark_player_as_ready(instance_id, player_id) do
+    Logger.info("Attempting to mark a player as ready #{instance_id}")
+
+    instance_id
+    |> GameInstanceRegistry.lookup_game_instance()
+    |> case do
+      {:ok, pid} -> GameInstanceProcess.mark_player_as_ready(pid, player_id)
+      error -> error
+    end
+  end
 end

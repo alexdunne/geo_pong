@@ -13,12 +13,6 @@ defmodule GeoPongWeb.Router do
     plug :accepts, ["json"]
   end
 
-  # scope "/", GeoPongWeb do
-  #   pipe_through :browser
-
-  #   get "/", PageController, :index
-  # end
-
   scope "/api", GeoPongWeb do
     pipe_through :api
 

@@ -43,7 +43,8 @@ defmodule GeoPong.MixProject do
       {:jason, "~> 1.0"},
       {:plug_cowboy, "~> 2.0"},
       {:elixir_uuid, "~> 1.2"},
-      {:faker, "~> 0.14"}
+      {:faker, "~> 0.14"},
+      {:cors_plug, "~> 2.0"}
     ]
   end
 

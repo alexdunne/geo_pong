@@ -1,8 +1,12 @@
 defmodule GeoPongWeb.UserSocket do
   use Phoenix.Socket
 
+  require Logger
+
+  alias GeoPongWeb.Auth.PlayerAuth
+
   ## Channels
-  # channel "room:*", GeoPongWeb.RoomChannel
+  channel "game:*", GeoPongWeb.GameChannel
 
   # Socket params are passed from the client and can
   # be used to verify and authenticate a user. After
@@ -15,8 +19,27 @@ defmodule GeoPongWeb.UserSocket do
   #
   # See `Phoenix.Token` documentation for examples in
   # performing token verification on connect.
+
+  # Player connection
+  @impl true
+  def connect(%{"token" => token}, socket, _connect_info) do
+    Logger.info("Player user connected")
+
+    case PlayerAuth.verify_token(socket, token) do
+      {:ok, player_id} ->
+        {:ok, assign(socket, :player_id, player_id)}
+
+      {:error, reason} ->
+        IO.inspect(reason)
+        :error
+    end
+  end
+
+  # Anon connection
   @impl true
   def connect(_params, socket, _connect_info) do
+    Logger.info("Anonymous user connected")
+
     {:ok, socket}
   end
 

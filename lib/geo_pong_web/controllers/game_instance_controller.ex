@@ -3,6 +3,7 @@ defmodule GeoPongWeb.GameInstanceController do
 
   alias GeoPong.GameInstances
   alias GeoPong.GameInstances.{GameInstance}
+  alias GeoPongWeb.Auth.PlayerAuth
 
   def index(conn, _params) do
     instances = GameInstances.all()
@@ -41,8 +42,7 @@ defmodule GeoPongWeb.GameInstanceController do
       {:ok, instance, player} ->
         conn
         |> json(%{
-          "secret" => instance.secret,
-          "player" => player
+          "token" => PlayerAuth.create_token(conn, player)
         })
 
       {:error, :not_found} ->

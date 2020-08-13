@@ -1,11 +1,10 @@
 defmodule GeoPong.GameInstances.GameInstanceProcess do
-  import GeoPong.GameInstances.GameInstance, only: [is_game_full: 1]
-
   use GenServer, restart: :transient
 
   require Logger
 
   alias GeoPong.GameInstances.{GameInstance, Player}
+  alias GeoPongWeb
 
   def start_link(%GameInstance{} = game_instance) do
     GenServer.start_link(__MODULE__, game_instance,
@@ -30,6 +29,11 @@ defmodule GeoPong.GameInstances.GameInstanceProcess do
     |> GenServer.call(:join)
   end
 
+  def mark_player_as_ready(pid, player_id) do
+    pid
+    |> GenServer.cast({:mark_player_as_ready, player_id})
+  end
+
   # Callbacks
 
   @impl true
@@ -39,7 +43,7 @@ defmodule GeoPong.GameInstances.GameInstanceProcess do
 
   @impl true
   def handle_call(:join, _from, %GameInstance{} = state) do
-    case add_new_player(state) do
+    case GameInstance.add_new_player(state) do
       {:ok, %GameInstance{} = instance, %Player{} = player} ->
         {:reply, {:ok, instance, player}, instance}
 
@@ -48,14 +52,43 @@ defmodule GeoPong.GameInstances.GameInstanceProcess do
     end
   end
 
-  defp add_new_player(%GameInstance{players: players}) when is_game_full(players) do
-    {:error, :game_full}
+  @impl true
+  def handle_cast({:mark_player_as_ready, player_id}, state) do
+    send(self(), :after_player_marked_as_ready)
+
+    {:noreply, GameInstance.mark_player_as_ready(state, player_id)}
   end
 
-  defp add_new_player(%GameInstance{} = game_instance) do
-    player = Player.new()
-    instance = %{game_instance | players: game_instance.players ++ [player]}
+  @impl true
+  def handle_info(:after_player_marked_as_ready, state) do
+    state.players
+    |> GameInstance.all_players_ready?()
+    |> case do
+      true ->
+        send(self(), {:broadcast, "all_players_ready", %{}})
+        {:noreply, GameInstance.update_status(state, GameInstance.status_all_players_ready())}
 
-    {:ok, instance, player}
+      _ ->
+        {:noreply, state}
+    end
+  end
+
+  def handle_info(:broadcast_to_subscribers, state) do
+    send(self(), {:broadcast, "game_state", %{}})
+
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info({:broadcast, event, message}, state) do
+    GeoPongWeb.Endpoint.broadcast_from!(self(), "game:#{state.id}", event, message)
+
+    {:noreply, state}
+  end
+
+  # Internal commands
+
+  defp schedule_broadcast_to_subscribers do
+    Process.send_after(self(), :broadcast_to_subscribers, 16)
   end
 end
