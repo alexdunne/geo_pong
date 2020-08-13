@@ -14,6 +14,8 @@ defmodule GeoPong.GameInstances.GameInstanceProcess do
 
   @impl true
   def init(%GameInstance{} = game_instance) do
+    schedule_broadcast_to_subscribers()
+
     {:ok, game_instance}
   end
 
@@ -75,6 +77,7 @@ defmodule GeoPong.GameInstances.GameInstanceProcess do
 
   def handle_info(:broadcast_to_subscribers, state) do
     send(self(), {:broadcast, "game_state", %{}})
+    schedule_broadcast_to_subscribers()
 
     {:noreply, state}
   end
