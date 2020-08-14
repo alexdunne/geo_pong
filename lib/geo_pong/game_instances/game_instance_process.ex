@@ -74,6 +74,8 @@ defmodule GeoPong.GameInstances.GameInstanceProcess do
     end
   end
 
+  # Game loop
+
   def handle_info(:tick, %GameInstance{status: :countdown_in_progress} = state) do
     state =
       state
@@ -81,6 +83,25 @@ defmodule GeoPong.GameInstances.GameInstanceProcess do
       |> case do
         true ->
           GameInstance.start_game(state)
+
+        _ ->
+          state
+      end
+
+    send(self(), {:broadcast, "game_state", state})
+    tick()
+
+    {:noreply, state}
+  end
+
+  def handle_info(:tick, %GameInstance{status: :game_in_progress} = state) do
+    state =
+      state
+      |> GameInstance.game_over?()
+      |> case do
+        true ->
+          GameInstance.end_game(state)
+          game_over()
 
         _ ->
           state
@@ -110,5 +131,9 @@ defmodule GeoPong.GameInstances.GameInstanceProcess do
 
   defp tick do
     Process.send_after(self(), :tick, 16)
+  end
+
+  defp game_over do
+    Process.exit(self(), :game_over)
   end
 end

@@ -1,9 +1,13 @@
 defmodule GeoPong.GameInstances.GameInstance do
   alias GeoPong.GameInstances.{GameInstance, Player}
 
+  @countdown_duration_seconds 3
+  # 5 minutes
+  @game_duration_seconds 300
+
   @enforce_keys [:id, :status, :players]
-  @derive {Jason.Encoder, only: [:id, :status, :game_start_time]}
-  defstruct [:id, :status, :game_start_time, :players]
+  @derive {Jason.Encoder, only: [:id, :status, :game_start_time, :game_end_time]}
+  defstruct [:id, :status, :game_start_time, :game_end_time, :players]
 
   defguard is_game_full(players) when length(players) >= 2
 
@@ -20,6 +24,7 @@ defmodule GeoPong.GameInstances.GameInstance do
   def status_waiting_for_players, do: :waiting_for_players
   def status_countdown_in_progress, do: :countdown_in_progress
   def status_game_in_progress, do: :game_in_progress
+  def status_game_over, do: :game_over
 
   def find_player_by_id(%GameInstance{players: players}, player_id) do
     players
@@ -61,7 +66,7 @@ defmodule GeoPong.GameInstances.GameInstance do
   def start_countdown(%GameInstance{} = game_instance) do
     game_instance
     |> update_status(status_countdown_in_progress())
-    |> set_game_start_time()
+    |> Map.put(:game_start_time, generate_start_time())
   end
 
   def countdown_elapsed?(%GameInstance{
@@ -78,6 +83,20 @@ defmodule GeoPong.GameInstances.GameInstance do
   def start_game(%GameInstance{} = game_instance) do
     game_instance
     |> update_status(status_game_in_progress())
+    |> Map.put(:game_end_time, generate_end_time())
+  end
+
+  def game_over?(%GameInstance{status: :game_in_progress, game_end_time: game_end_time}) do
+    Timex.after?(Timex.now(), game_end_time)
+  end
+
+  def game_over?(_instance) do
+    false
+  end
+
+  def end_game(%GameInstance{} = game_instance) do
+    game_instance
+    |> update_status(status_game_over())
   end
 
   defp generate_id do
@@ -94,7 +113,11 @@ defmodule GeoPong.GameInstances.GameInstance do
     %{game_instance | status: status}
   end
 
-  defp set_game_start_time(%GameInstance{} = game_instance) do
-    %{game_instance | game_start_time: Timex.shift(Timex.now(), seconds: 3)}
+  defp generate_start_time() do
+    Timex.shift(Timex.now(), seconds: @countdown_duration_seconds)
+  end
+
+  defp generate_end_time() do
+    Timex.shift(Timex.now(), seconds: @game_duration_seconds)
   end
 end
