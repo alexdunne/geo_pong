@@ -88,6 +88,7 @@ defmodule GeoPong.GameInstances.GameInstanceProcess do
 
   # Game loop
 
+  @impl true
   def handle_info(:tick, %GameInstance{status: :countdown_in_progress} = state) do
     state =
       state
@@ -100,12 +101,13 @@ defmodule GeoPong.GameInstances.GameInstanceProcess do
           state
       end
 
-    send(self(), {:broadcast, "game_state", state})
+    send(self(), {:broadcast, "game_state", game_view(state)})
     tick()
 
     {:noreply, state}
   end
 
+  @impl true
   def handle_info(:tick, %GameInstance{status: :game_in_progress} = state) do
     state =
       state
@@ -119,24 +121,43 @@ defmodule GeoPong.GameInstances.GameInstanceProcess do
           GameInstance.progress_game(state)
       end
 
-    send(self(), {:broadcast, "game_state", state})
-    tick()
-
-    {:noreply, state}
-  end
-
-  def handle_info(:tick, state) do
-    send(self(), {:broadcast, "game_state", state})
+    send(self(), {:broadcast, "game_state", game_view(state)})
     tick()
 
     {:noreply, state}
   end
 
   @impl true
-  def handle_info({:broadcast, event, message}, state) do
+  def handle_info(:tick, state) do
+    send(self(), {:broadcast, "game_state", game_view(state)})
+    tick()
+
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info({:broadcast, event, message}, %GameInstance{} = state) do
     GeoPongWeb.Endpoint.broadcast_from!(self(), "game:#{state.id}", event, message)
 
     {:noreply, state}
+  end
+
+  defp game_view(%GameInstance{} = instance) do
+    %{
+      id: instance.id,
+      status: instance.status,
+      game_start_time: instance.game_start_time,
+      game_end_time: instance.game_end_time,
+      players: Enum.map(instance.players, fn player -> player_view(player) end)
+    }
+  end
+
+  defp player_view(%Player{} = player) do
+    %{
+      name: player.name,
+      ready: player.ready,
+      position: player.position
+    }
   end
 
   # Internal commands

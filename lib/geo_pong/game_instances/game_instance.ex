@@ -7,6 +7,7 @@ defmodule GeoPong.GameInstances.GameInstance do
   @game_height 1080
   @player_size %{width: 30, height: 75}
   @player_x_padding 10
+  @player_move_increment 25
 
   @countdown_duration_seconds 3
   # 5 minutes
@@ -134,17 +135,29 @@ defmodule GeoPong.GameInstances.GameInstance do
 
   def progress_game(%GameInstance{} = game_instance) do
     # Move players
-    # Move ball
-    # Check if either player scored
-    #   If so increment score
-    #   Reset ball and player positions
 
-    Logger.info("--- Start ---")
-    Logger.info("Player one: #{get_player_one(game_instance)}")
-    Logger.info("Player two: #{get_player_two(game_instance)}")
-    Logger.info("--- End ---")
+    players =
+      game_instance.players
+      |> Enum.map(fn player ->
+        new_y_position =
+          case player.current_action do
+            :idle ->
+              player.position.y
 
-    game_instance
+            :left_down ->
+              max(player.position.y - @player_move_increment, 0)
+
+            :right_down ->
+              min(
+                player.position.y + @player_move_increment,
+                player.position.y + @player_size.height
+              )
+          end
+
+        put_in(player.position.y, new_y_position)
+      end)
+
+    %{game_instance | players: players}
   end
 
   defp generate_id do
