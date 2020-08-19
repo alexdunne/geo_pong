@@ -65,4 +65,15 @@ defmodule GeoPong.GameInstances do
       error -> error
     end
   end
+
+  def handle_player_action(instance_id, player_id, action) do
+    Logger.info("New player action. #{instance_id}, #{player_id}, #{action}")
+
+    instance_id
+    |> GameInstanceRegistry.lookup_game_instance()
+    |> case do
+      {:ok, pid} -> GameInstanceProcess.handle_player_action(pid, player_id, action)
+      error -> error
+    end
+  end
 end

@@ -12,6 +12,14 @@ defmodule GeoPongWeb.GameChannel do
     do_join(["game"] ++ String.split(topic, ":"), payload, socket)
   end
 
+  def handle_in("new_player_action", %{"action" => action}, socket) do
+    socket.topic
+    |> get_game_instance_id()
+    |> GameInstances.handle_player_action(socket.assigns[:player_id], action)
+
+    {:noreply, socket}
+  end
+
   # Player specific channel
   defp do_join(["game", game_instance_id, "player"], _payload, socket) do
     game_instance_id
@@ -38,11 +46,17 @@ defmodule GeoPongWeb.GameChannel do
   end
 
   defp fetch_game_player(game_instance_id, player_id) do
-    with instance <- GameInstances.fetch(game_instance_id),
+    with %GameInstance{} = instance <- GameInstances.fetch(game_instance_id),
          %Player{} = player <- GameInstance.find_player_by_id(instance, player_id) do
       {:ok, player}
     else
       _ -> {:error, :player_not_found}
     end
+  end
+
+  defp get_game_instance_id(topic) do
+    [_, id, _] = String.split(topic, ":")
+
+    id
   end
 end

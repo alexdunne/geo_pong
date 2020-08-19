@@ -6,6 +6,8 @@ defmodule GeoPong.GameInstances.GameInstanceProcess do
   alias GeoPong.GameInstances.{GameInstance, Player}
   alias GeoPongWeb
 
+  @tick_interval 1000
+
   def start_link(%GameInstance{} = game_instance) do
     GenServer.start_link(__MODULE__, game_instance,
       name: {:via, Registry, {GeoPong.GameInstanceRegistry, game_instance.id}}
@@ -36,6 +38,11 @@ defmodule GeoPong.GameInstances.GameInstanceProcess do
     |> GenServer.cast({:mark_player_as_ready, player_id})
   end
 
+  def handle_player_action(pid, player_id, action) do
+    pid
+    |> GenServer.cast({:handle_player_action, player_id, action})
+  end
+
   # Callbacks
 
   @impl true
@@ -59,6 +66,11 @@ defmodule GeoPong.GameInstances.GameInstanceProcess do
     send(self(), :after_player_marked_as_ready)
 
     {:noreply, GameInstance.mark_player_as_ready(state, player_id)}
+  end
+
+  @impl true
+  def handle_cast({:handle_player_action, player_id, action}, state) do
+    {:noreply, GameInstance.handle_player_action(state, player_id, action)}
   end
 
   @impl true
@@ -104,7 +116,7 @@ defmodule GeoPong.GameInstances.GameInstanceProcess do
           game_over()
 
         _ ->
-          state
+          GameInstance.progress_game(state)
       end
 
     send(self(), {:broadcast, "game_state", state})
@@ -130,7 +142,7 @@ defmodule GeoPong.GameInstances.GameInstanceProcess do
   # Internal commands
 
   defp tick do
-    Process.send_after(self(), :tick, 16)
+    Process.send_after(self(), :tick, @tick_interval)
   end
 
   defp game_over do
