@@ -86,22 +86,17 @@ defmodule GeoPong.GameInstances.GameInstanceProcess do
     end
   end
 
-  # Game loop
-
   @impl true
   def handle_info(:tick, %GameInstance{status: :countdown_in_progress} = state) do
     state =
       state
       |> GameInstance.countdown_elapsed?()
       |> case do
-        true ->
-          GameInstance.start_game(state)
-
-        _ ->
-          state
+        true -> GameInstance.start_game(state)
+        _ -> state
       end
 
-    send(self(), {:broadcast, "game_state", game_view(state)})
+    broadcast_game_state(state)
     tick()
 
     {:noreply, state}
@@ -114,14 +109,14 @@ defmodule GeoPong.GameInstances.GameInstanceProcess do
       |> GameInstance.game_over?()
       |> case do
         true ->
+          send(self(), {:end_game})
           GameInstance.end_game(state)
-          game_over()
 
         _ ->
           GameInstance.progress_game(state)
       end
 
-    send(self(), {:broadcast, "game_state", game_view(state)})
+    broadcast_game_state(state)
     tick()
 
     {:noreply, state}
@@ -129,7 +124,7 @@ defmodule GeoPong.GameInstances.GameInstanceProcess do
 
   @impl true
   def handle_info(:tick, state) do
-    send(self(), {:broadcast, "game_state", game_view(state)})
+    broadcast_game_state(state)
     tick()
 
     {:noreply, state}
@@ -139,6 +134,17 @@ defmodule GeoPong.GameInstances.GameInstanceProcess do
   def handle_info({:broadcast, event, message}, %GameInstance{} = state) do
     GeoPongWeb.Endpoint.broadcast_from!(self(), "game:#{state.id}", event, message)
 
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info({:end_game}, state) do
+    Process.exit(self(), :game_over)
+    {:noreply, state}
+  end
+
+  @impl true
+  def handle_info(_, state) do
     {:noreply, state}
   end
 
@@ -171,7 +177,7 @@ defmodule GeoPong.GameInstances.GameInstanceProcess do
     Process.send_after(self(), :tick, @tick_interval)
   end
 
-  defp game_over do
-    Process.exit(self(), :game_over)
+  defp broadcast_game_state(state) do
+    send(self(), {:broadcast, "game_state", game_view(state)})
   end
 end
