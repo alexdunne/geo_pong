@@ -7,7 +7,7 @@ defmodule GeoPong.GameInstances.GameInstance do
   @game_height 400
   @player_size %{width: 30, height: 80}
   @player_x_padding 10
-  @player_move_increment 20
+  @player_move_increment 10
 
   @countdown_duration_seconds 3
   # 5 minutes
