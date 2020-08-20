@@ -3,7 +3,7 @@ defmodule GeoPong.GameInstances.GameInstanceProcess do
 
   require Logger
 
-  alias GeoPong.GameInstances.{GameInstance, Player}
+  alias GeoPong.GameInstances.{GameEngine, GameInstance, Player}
   alias GeoPongWeb
 
   @tick_interval 16
@@ -113,7 +113,7 @@ defmodule GeoPong.GameInstances.GameInstanceProcess do
           GameInstance.end_game(state)
 
         _ ->
-          GameInstance.progress_game(state)
+          GameEngine.run(state)
       end
 
     broadcast_game_state(state)
@@ -155,10 +155,10 @@ defmodule GeoPong.GameInstances.GameInstanceProcess do
       gameStartTime: instance.game_start_time,
       gameEndTime: instance.game_end_time,
       players: Enum.map(instance.players, fn player -> player_view(player) end),
-      meta: %{
-        playerSize: GameInstance.player_size(),
-        gameHeight: GameInstance.game_height(),
-        gameWidth: GameInstance.game_width()
+      engine: %{
+        playerSize: GameEngine.player_size(),
+        gameHeight: GameEngine.game_height(),
+        gameWidth: GameEngine.game_width()
       }
     }
   end

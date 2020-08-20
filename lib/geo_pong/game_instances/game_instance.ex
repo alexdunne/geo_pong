@@ -1,17 +1,7 @@
 defmodule GeoPong.GameInstances.GameInstance do
-  alias GeoPong.GameInstances.{GameInstance, Player}
+  alias GeoPong.GameInstances.{GameEngine, GameInstance, Player}
 
   require Logger
-
-  @game_width 600
-  @game_height 400
-  @player_size %{width: 10, height: 100}
-  @player_x_padding 10
-  @player_move_increment 10
-
-  @countdown_duration_seconds 3
-  # 5 minutes
-  @game_duration_seconds 300
 
   @enforce_keys [:id, :status, :players]
   @derive {Jason.Encoder, only: [:id, :status, :game_start_time, :game_end_time]}
@@ -34,10 +24,6 @@ defmodule GeoPong.GameInstances.GameInstance do
   def status_game_in_progress, do: :game_in_progress
   def status_game_over, do: :game_over
 
-  def game_width, do: @game_width
-  def game_height, do: @game_height
-  def player_size, do: @player_size
-
   def find_player_by_id(%GameInstance{players: players}, player_id) do
     players
     |> Enum.find(fn player -> player.id == player_id end)
@@ -48,11 +34,7 @@ defmodule GeoPong.GameInstances.GameInstance do
   end
 
   def add_new_player(%GameInstance{} = game_instance) do
-    player =
-      Player.new(%{
-        initial_position:
-          calculate_player_initial_position(is_second_player: length(game_instance.players) == 1)
-      })
+    player = Player.new(%{initial_position: GameEngine.next_player_position(game_instance)})
 
     instance = %{game_instance | players: game_instance.players ++ [player]}
 
@@ -137,36 +119,6 @@ defmodule GeoPong.GameInstances.GameInstance do
     game_instance
   end
 
-  def progress_game(%GameInstance{} = game_instance) do
-    # Move players
-
-    players =
-      game_instance.players
-      |> Enum.map(fn player ->
-        new_y_position =
-          case player.current_action do
-            :idle ->
-              player.position.y
-
-            :left_down ->
-              max(player.position.y - @player_move_increment, 0)
-
-            :right_down ->
-              possible_position = player.position.y + @player_move_increment
-              max_position = @game_height - @player_size.height
-
-              case possible_position + @player_size.height > max_position do
-                true -> max_position
-                _ -> possible_position
-              end
-          end
-
-        put_in(player.position.y, new_y_position)
-      end)
-
-    %{game_instance | players: players}
-  end
-
   defp generate_id do
     first = Faker.Superhero.prefix()
     second = Faker.Commerce.color()
@@ -182,29 +134,10 @@ defmodule GeoPong.GameInstances.GameInstance do
   end
 
   defp generate_start_time() do
-    Timex.shift(Timex.now(), seconds: @countdown_duration_seconds)
+    Timex.shift(Timex.now(), seconds: GameEngine.countdown_duration_seconds())
   end
 
   defp generate_end_time() do
-    Timex.shift(Timex.now(), seconds: @game_duration_seconds)
-  end
-
-  defp calculate_player_initial_position(is_second_player: is_second_player)
-       when is_second_player == true do
-    %{
-      x: @game_width - @player_size.width - @player_x_padding,
-      y: calculate_player_initial_y_position()
-    }
-  end
-
-  defp calculate_player_initial_position(_) do
-    %{
-      x: @player_x_padding,
-      y: calculate_player_initial_y_position()
-    }
-  end
-
-  defp calculate_player_initial_y_position() do
-    @game_height / 2 - @player_size.height / 2
+    Timex.shift(Timex.now(), seconds: GameEngine.game_duration_seconds())
   end
 end
