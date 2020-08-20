@@ -3,11 +3,11 @@ defmodule GeoPong.GameInstances.GameInstance do
 
   require Logger
 
-  @game_width 1920
-  @game_height 1080
-  @player_size %{width: 30, height: 75}
+  @game_width 600
+  @game_height 400
+  @player_size %{width: 30, height: 80}
   @player_x_padding 10
-  @player_move_increment 25
+  @player_move_increment 20
 
   @countdown_duration_seconds 3
   # 5 minutes
@@ -33,6 +33,10 @@ defmodule GeoPong.GameInstances.GameInstance do
   def status_countdown_in_progress, do: :countdown_in_progress
   def status_game_in_progress, do: :game_in_progress
   def status_game_over, do: :game_over
+
+  def game_width, do: @game_width
+  def game_height, do: @game_height
+  def player_size, do: @player_size
 
   def find_player_by_id(%GameInstance{players: players}, player_id) do
     players
@@ -148,10 +152,13 @@ defmodule GeoPong.GameInstances.GameInstance do
               max(player.position.y - @player_move_increment, 0)
 
             :right_down ->
-              min(
-                player.position.y + @player_move_increment,
-                player.position.y + @player_size.height
-              )
+              possible_position = player.position.y + @player_move_increment
+              max_position = @game_height - @player_size.height
+
+              case possible_position + @player_size.height > max_position do
+                true -> max_position
+                _ -> possible_position
+              end
           end
 
         put_in(player.position.y, new_y_position)
@@ -185,7 +192,7 @@ defmodule GeoPong.GameInstances.GameInstance do
   defp calculate_player_initial_position(is_second_player: is_second_player)
        when is_second_player == true do
     %{
-      x: @game_width - @player_x_padding,
+      x: @game_width - @player_size.width - @player_x_padding,
       y: calculate_player_initial_y_position()
     }
   end
@@ -198,16 +205,6 @@ defmodule GeoPong.GameInstances.GameInstance do
   end
 
   defp calculate_player_initial_y_position() do
-    Float.ceil(@game_height / 2 + @player_size.height / 2)
-  end
-
-  defp get_player_one(%GameInstance{} = game_instance) do
-    Logger.info("Players: #{length(game_instance.players)}")
-
-    hd(game_instance.players)
-  end
-
-  defp get_player_two(%GameInstance{} = game_instance) do
-    List.last(game_instance.players)
+    @game_height / 2 - @player_size.height / 2
   end
 end

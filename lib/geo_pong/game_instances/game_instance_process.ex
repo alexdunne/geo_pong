@@ -6,7 +6,7 @@ defmodule GeoPong.GameInstances.GameInstanceProcess do
   alias GeoPong.GameInstances.{GameInstance, Player}
   alias GeoPongWeb
 
-  @tick_interval 1000
+  @tick_interval 16
 
   def start_link(%GameInstance{} = game_instance) do
     GenServer.start_link(__MODULE__, game_instance,
@@ -146,9 +146,14 @@ defmodule GeoPong.GameInstances.GameInstanceProcess do
     %{
       id: instance.id,
       status: instance.status,
-      game_start_time: instance.game_start_time,
-      game_end_time: instance.game_end_time,
-      players: Enum.map(instance.players, fn player -> player_view(player) end)
+      gameStartTime: instance.game_start_time,
+      gameEndTime: instance.game_end_time,
+      players: Enum.map(instance.players, fn player -> player_view(player) end),
+      meta: %{
+        playerSize: GameInstance.player_size(),
+        gameHeight: GameInstance.game_height(),
+        gameWidth: GameInstance.game_width()
+      }
     }
   end
 
