@@ -3,10 +3,12 @@ defmodule GeoPong.GameInstances.GameInstanceProcess do
 
   require Logger
 
-  alias GeoPong.GameInstances.{GameEngine, GameInstance, Player}
+  alias GeoPong.GameInstances.{Ball, GameEngine, GameInstance, Player}
   alias GeoPongWeb
 
   @tick_interval 16
+  # 10 minutes
+  @max_process_duration 600_000
 
   def start_link(%GameInstance{} = game_instance) do
     GenServer.start_link(__MODULE__, game_instance,
@@ -17,6 +19,9 @@ defmodule GeoPong.GameInstances.GameInstanceProcess do
   @impl true
   def init(%GameInstance{} = game_instance) do
     tick()
+    terminate_after(@max_process_duration)
+
+    Logger.info("Initialising a new game instance")
 
     {:ok, game_instance}
   end
@@ -139,7 +144,9 @@ defmodule GeoPong.GameInstances.GameInstanceProcess do
 
   @impl true
   def handle_info({:end_game}, state) do
-    Process.exit(self(), :game_over)
+    Logger.info("Terminating game instance")
+
+    Process.exit(self(), :normal)
     {:noreply, state}
   end
 
@@ -155,10 +162,12 @@ defmodule GeoPong.GameInstances.GameInstanceProcess do
       gameStartTime: instance.game_start_time,
       gameEndTime: instance.game_end_time,
       players: Enum.map(instance.players, fn player -> player_view(player) end),
+      ball: ball_view(instance.ball),
       engine: %{
         playerSize: GameEngine.player_size(),
         gameHeight: GameEngine.game_height(),
-        gameWidth: GameEngine.game_width()
+        gameWidth: GameEngine.game_width(),
+        ballSize: GameEngine.ball_size()
       }
     }
   end
@@ -171,10 +180,21 @@ defmodule GeoPong.GameInstances.GameInstanceProcess do
     }
   end
 
+  defp ball_view(%Ball{} = ball) do
+    %{
+      x: ball.x,
+      y: ball.y
+    }
+  end
+
   # Internal commands
 
   defp tick do
     Process.send_after(self(), :tick, @tick_interval)
+  end
+
+  defp terminate_after(duration) do
+    Process.send_after(self(), {:end_game}, duration)
   end
 
   defp broadcast_game_state(state) do

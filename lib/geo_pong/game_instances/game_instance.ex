@@ -3,9 +3,9 @@ defmodule GeoPong.GameInstances.GameInstance do
 
   require Logger
 
-  @enforce_keys [:id, :status, :players]
+  @enforce_keys [:id, :status, :players, :ball]
   @derive {Jason.Encoder, only: [:id, :status, :game_start_time, :game_end_time]}
-  defstruct [:id, :status, :game_start_time, :game_end_time, :players]
+  defstruct [:id, :status, :game_start_time, :game_end_time, :players, :ball]
 
   defguard is_game_full(players) when length(players) >= 2
 
@@ -15,7 +15,8 @@ defmodule GeoPong.GameInstances.GameInstance do
     %GameInstance{
       id: id,
       status: status_waiting_for_players(),
-      players: []
+      players: [],
+      ball: GameEngine.create_ball()
     }
   end
 

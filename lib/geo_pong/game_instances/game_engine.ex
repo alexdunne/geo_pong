@@ -1,5 +1,5 @@
 defmodule GeoPong.GameInstances.GameEngine do
-  alias GeoPong.GameInstances.{GameInstance, Player}
+  alias GeoPong.GameInstances.{Ball, GameInstance, Player}
 
   @game_width 600
   @game_height 400
@@ -8,12 +8,15 @@ defmodule GeoPong.GameInstances.GameEngine do
   @player_x_padding 10
   @player_move_increment 10
 
+  @ball_size 20
+
   @countdown_duration_seconds 3
   @game_duration_seconds 300
 
   def game_width, do: @game_width
   def game_height, do: @game_height
   def player_size, do: @player_size
+  def ball_size, do: @ball_size
   def countdown_duration_seconds, do: @countdown_duration_seconds
   def game_duration_seconds, do: @game_duration_seconds
 
@@ -29,9 +32,25 @@ defmodule GeoPong.GameInstances.GameEngine do
     %{x: x, y: @game_height / 2 - @player_size.height / 2}
   end
 
+  def create_ball() do
+    Ball.new(%{
+      x: @game_width / 2 - @ball_size / 2,
+      y: @game_height / 2 - @ball_size / 2,
+      x_speed: :rand.uniform(15),
+      y_speed: :rand.uniform(15)
+    })
+  end
+
   def run(%GameInstance{} = instance) do
+    instance
+    |> move_players()
+    |> move_ball()
+    |> process_collisions()
+  end
+
+  defp move_players(%GameInstance{players: players} = instance) do
     players =
-      instance.players
+      players
       |> Enum.map(&move_player(&1))
 
     %{instance | players: players}
@@ -55,5 +74,102 @@ defmodule GeoPong.GameInstances.GameEngine do
       end
 
     put_in(player.position.y, next_y)
+  end
+
+  defp move_ball(%GameInstance{ball: ball} = instance) do
+    ball =
+      ball
+      |> Map.put(:x, ball.x + ball.x_speed)
+      |> Map.put(:y, ball.y + ball.y_speed)
+
+    %{instance | ball: ball}
+  end
+
+  defp process_collisions(%GameInstance{} = instance) do
+    instance
+    # What if there is a player and a boundary collision?
+    |> process_player_collisions()
+    |> process_boundary_collision()
+  end
+
+  defp process_player_collisions(%GameInstance{ball: ball} = instance) do
+    if is_player_collision(instance) do
+      ball =
+        ball
+        |> Map.put(:x_speed, ball.x_speed * -1)
+
+      %{instance | ball: ball}
+    else
+      instance
+    end
+  end
+
+  defp is_player_collision(%GameInstance{} = instance) do
+    is_collision_with_player_one(instance) || is_collision_with_player_two(instance)
+  end
+
+  defp is_collision_with_player_one(%GameInstance{ball: ball, players: players}) do
+    player = List.first(players)
+
+    ball_left = ball.x - ball_radius()
+    player_right = player.position.x + @player_size.width
+
+    is_horizontal_collision = ball_left <= player_right
+
+    is_horizontal_collision && is_vertical_collision_with_player(player, ball)
+  end
+
+  defp is_collision_with_player_two(%GameInstance{ball: ball, players: players}) do
+    player = List.last(players)
+
+    ball_right = ball.x + ball_radius()
+    player_left = player.position.x
+
+    is_horizontal_collision = ball_right >= player_left
+
+    is_horizontal_collision && is_vertical_collision_with_player(player, ball)
+  end
+
+  defp is_vertical_collision_with_player(%Player{} = player, %Ball{} = ball) do
+    player_top = player.position.y
+    player_bottom = player.position.y + @player_size.height
+
+    ball_top = ball.y - ball_radius()
+    ball_bottom = ball.y + ball_radius()
+
+    ball_top <= player_bottom && ball_bottom >= player_top
+  end
+
+  defp process_boundary_collision(%GameInstance{ball: ball} = instance) do
+    x_speed =
+      case is_x_boundary_collision?(ball) do
+        true -> ball.x_speed * -1
+        _ -> ball.x_speed
+      end
+
+    y_speed =
+      case is_y_boundary_collision?(ball) do
+        true -> ball.y_speed * -1
+        _ -> ball.y_speed
+      end
+
+    ball =
+      ball
+      |> Map.put(:x_speed, x_speed)
+      |> Map.put(:y_speed, y_speed)
+
+    %{instance | ball: ball}
+  end
+
+  defp is_x_boundary_collision?(%Ball{} = ball) do
+    ball.x < ball_radius() || ball.x + ball_radius() > @game_width
+  end
+
+  defp is_y_boundary_collision?(%Ball{} = ball) do
+    ball.y < ball_radius() || ball.y + ball_radius() > @game_height
+  end
+
+  defp ball_radius do
+    @ball_size / 2
   end
 end
