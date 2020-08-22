@@ -20,16 +20,15 @@ defmodule GeoPong.GameInstances.GameEngine do
   def countdown_duration_seconds, do: @countdown_duration_seconds
   def game_duration_seconds, do: @game_duration_seconds
 
-  def next_player_position(%GameInstance{players: players}) do
-    x =
-      case Enum.empty?(players) do
-        # First player
-        true -> @player_x_padding
-        # Second player
-        _ -> @game_width - @player_size.width - @player_x_padding
-      end
+  def calculate_player_initial_position(is_first_player) when is_first_player == true do
+    %{x: @player_x_padding, y: @game_height / 2 - @player_size.height / 2}
+  end
 
-    %{x: x, y: @game_height / 2 - @player_size.height / 2}
+  def calculate_player_initial_position(_) do
+    %{
+      x: @game_width - @player_size.width - @player_x_padding,
+      y: @game_height / 2 - @player_size.height / 2
+    }
   end
 
   def create_ball() do
@@ -42,10 +41,38 @@ defmodule GeoPong.GameInstances.GameEngine do
   end
 
   def run(%GameInstance{} = instance) do
-    instance
-    |> move_players()
-    |> move_ball()
-    |> process_collisions()
+    instance =
+      instance
+      |> move_players()
+      |> move_ball()
+
+    cond do
+      has_player_scored(instance, :player_one) ->
+        instance
+        |> GameInstance.increment_player_score(:player_one)
+        |> reset_entity_positions()
+
+      has_player_scored(instance, :player_two) ->
+        instance
+        |> GameInstance.increment_player_score(:player_two)
+        |> reset_entity_positions()
+
+      true ->
+        process_collisions(instance)
+    end
+  end
+
+  def reset_entity_positions(%GameInstance{ball: ball, players: players} = instance) do
+    players =
+      players
+      |> Enum.with_index()
+      |> Enum.map(fn {player, idx} ->
+        position = calculate_player_initial_position(idx == 0)
+
+        Map.put(player, :position, position)
+      end)
+
+    %{instance | ball: create_ball(), players: players}
   end
 
   defp move_players(%GameInstance{players: players} = instance) do
@@ -83,6 +110,14 @@ defmodule GeoPong.GameInstances.GameEngine do
       |> Map.put(:y, ball.y + ball.y_speed)
 
     %{instance | ball: ball}
+  end
+
+  defp has_player_scored(%GameInstance{ball: ball}, :player_one) do
+    ball.x + ball_radius() > @game_width
+  end
+
+  defp has_player_scored(%GameInstance{ball: ball}, :player_two) do
+    ball.x < ball_radius()
   end
 
   defp process_collisions(%GameInstance{} = instance) do
@@ -141,12 +176,6 @@ defmodule GeoPong.GameInstances.GameEngine do
   end
 
   defp process_boundary_collision(%GameInstance{ball: ball} = instance) do
-    x_speed =
-      case is_x_boundary_collision?(ball) do
-        true -> ball.x_speed * -1
-        _ -> ball.x_speed
-      end
-
     y_speed =
       case is_y_boundary_collision?(ball) do
         true -> ball.y_speed * -1
@@ -155,14 +184,9 @@ defmodule GeoPong.GameInstances.GameEngine do
 
     ball =
       ball
-      |> Map.put(:x_speed, x_speed)
       |> Map.put(:y_speed, y_speed)
 
     %{instance | ball: ball}
-  end
-
-  defp is_x_boundary_collision?(%Ball{} = ball) do
-    ball.x < ball_radius() || ball.x + ball_radius() > @game_width
   end
 
   defp is_y_boundary_collision?(%Ball{} = ball) do

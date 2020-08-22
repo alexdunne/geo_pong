@@ -3,9 +3,9 @@ defmodule GeoPong.GameInstances.GameInstance do
 
   require Logger
 
-  @enforce_keys [:id, :status, :players, :ball]
-  @derive {Jason.Encoder, only: [:id, :status, :game_start_time, :game_end_time]}
-  defstruct [:id, :status, :game_start_time, :game_end_time, :players, :ball]
+  @enforce_keys [:id, :status, :players, :ball, :score]
+  @derive {Jason.Encoder, only: [:id, :status, :game_start_time, :game_end_time, :score]}
+  defstruct [:id, :status, :game_start_time, :game_end_time, :players, :ball, :score]
 
   defguard is_game_full(players) when length(players) >= 2
 
@@ -16,7 +16,8 @@ defmodule GeoPong.GameInstances.GameInstance do
       id: id,
       status: status_waiting_for_players(),
       players: [],
-      ball: GameEngine.create_ball()
+      ball: GameEngine.create_ball(),
+      score: [0, 0]
     }
   end
 
@@ -34,8 +35,13 @@ defmodule GeoPong.GameInstances.GameInstance do
     {:error, :game_full}
   end
 
-  def add_new_player(%GameInstance{} = game_instance) do
-    player = Player.new(%{initial_position: GameEngine.next_player_position(game_instance)})
+  def add_new_player(%GameInstance{players: players} = game_instance) do
+    is_first_player = length(players) == 0
+
+    player =
+      Player.new(%{
+        initial_position: GameEngine.calculate_player_initial_position(is_first_player)
+      })
 
     instance = %{game_instance | players: game_instance.players ++ [player]}
 
@@ -118,6 +124,28 @@ defmodule GeoPong.GameInstances.GameInstance do
 
   def handle_player_action(%GameInstance{} = game_instance, _player_id, _action) do
     game_instance
+  end
+
+  def player_scored(%GameInstance{} = instance, :player_one) do
+    instance =
+      instance
+      |> increment_player_score(:player_one)
+      |> GameEngine.reset_entity_positions()
+  end
+
+  def player_scored(%GameInstance{} = instance, :player_two) do
+    instance =
+      instance
+      |> increment_player_score(:player_one)
+      |> GameEngine.reset_entity_positions()
+  end
+
+  def increment_player_score(%GameInstance{score: score} = instance, :player_one) do
+    %{instance | score: List.update_at(score, 0, &(&1 + 1))}
+  end
+
+  def increment_player_score(%GameInstance{score: score} = instance, :player_two) do
+    %{instance | score: List.update_at(score, 1, &(&1 + 1))}
   end
 
   defp generate_id do

@@ -163,6 +163,7 @@ defmodule GeoPong.GameInstances.GameInstanceProcess do
       gameEndTime: instance.game_end_time,
       players: Enum.map(instance.players, fn player -> player_view(player) end),
       ball: ball_view(instance.ball),
+      score: instance.score,
       engine: %{
         playerSize: GameEngine.player_size(),
         gameHeight: GameEngine.game_height(),
