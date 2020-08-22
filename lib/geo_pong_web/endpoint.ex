@@ -51,7 +51,12 @@ defmodule GeoPongWeb.Endpoint do
   plug Plug.Session, @session_options
 
   plug CORSPlug,
-    origin: ["http://0.0.0.0:8080", "http://localhost:8080", "http://192.168.0.13:8080"]
+    origin: [
+      "http://0.0.0.0:8080",
+      "http://localhost:8080",
+      "http://192.168.0.13:8080",
+      "https://pong.alexdunne.net"
+    ]
 
   plug GeoPongWeb.Router
 end
