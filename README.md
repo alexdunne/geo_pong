@@ -6,9 +6,10 @@ This is a demo project to experiment with Elixir and [OTP](https://en.wikipedia.
 
 ## How to Play
 
-1. Create a new game
-2. On two separate devices (or browser windows) join the game
-3. Play Pong
+1. Head over to [https://pong.alexdunne.net/](https://pong.alexdunne.net/)
+2. Create a new game
+3. On two separate devices (or browser windows) join the game
+4. Play Pong
 
 ![Gameplay example](./docs/assets/game.gif)
 
